@@ -1,0 +1,90 @@
+---
+title: "GLAM - Project"
+author: "Olivier Grognuz"
+date: "04/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(GGally)
+library(corrplot)
+```
+
+We would like to model the effect of the pollutants and the meteorological conditions on the number of hospital admissions.
+So we have 2 questions:
+1. Effect of the pollutants `no2`, `so2`, `rsp`, `o3`
+2. Effect of meteorological conds `temp` and `hum`
+Response variable is `resp`. 
+
+# EDA 
+
+```{r}
+polcsv <- read.csv("pollution.csv")
+
+head(polcsv)
+
+pol <- na.omit(polcsv)
+dim(pol)
+
+pol$month <- as.factor(pol$month)
+pol$year <- as.factor(pol$year)
+pol$weekday <- as.factor(pol$weekday)
+str(pol)
+```
+
+```{r}
+#Some subsets for easier use
+
+pol.quants <- pol[,!names(pol) %in% c("day", "month", "year", "date", "weekday")]
+pol.meteo <- pol[,c("temp", "hum")]
+pol.pol <- pol[,c("no2", "so2", "rsp", "o3")]
+```
+
+All
+```{r}
+ggpairs(pol[, !names(pol) %in% c("date")])
+ggsave("figures/pairs/all.png", width=10, height=8)
+```
+
+
+Only quantitative variables:
+```{r}
+ggpairs(pol.quants)
+ggsave("figures/pairs/quant.png", width=8, height=5)
+```
+
+Quants + month
+```{r}
+ggpairs(pol[,!names(pol) %in% c("day", "year", "date", "weekday")], aes(color=month, alpha=0.4))
+ggsave("figures/pairs/quant_month.png", width=9, height=6)
+```
+
+The `month` factor also explains in a way the meteorological conditions since summer is high temperature and winter low.
+
+Quants + year
+```{r}
+ggpairs(pol[,!names(pol) %in% c("day", "month", "date", "weekday")], aes(color=year, alpha=0.4))
+ggsave("figures/pairs/quant_year.png", width=9, height=6)
+```
+
+Quants + weekday
+```{r}
+ggpairs(pol[,!names(pol) %in% c("day", "month", "date", "year")], aes(color=weekday, alpha=0.4))
+ggsave("figures/pairs/quant_weekday.png", width=9, height=6)
+```
+
+Correlation matrix
+```{r}
+cor(pol.quants)
+corrplot(cor(pol.quants))
+```
+
+Only thing to notice is rsp <=> no2, does it mean something? 78% correlation
+
+With the plots, we don't really see any clear pattern apart that it seems to increase with the years.
+But, maybe we have an interaction effect! We should investigate that as well.
