@@ -41,6 +41,15 @@ str(pol)
 #Some subsets for easier use
 
 pol.quants <- pol[,!names(pol) %in% c("day", "month", "year", "date", "weekday")]
+
+pol.quants.log <- pol.quants
+pol.quants.log[c("no2", "so2", "rsp", "o3")] <- log(pol.quants.log[c("no2", "so2", "rsp", "o3")])
+names(pol.quants.log)[2] <- "log(no2)"
+names(pol.quants.log)[3] <- "log(so2)"
+names(pol.quants.log)[4] <- "log(rsp)"
+names(pol.quants.log)[5] <- "log(o3)"
+
+
 pol.meteo <- pol[,c("temp", "hum")]
 pol.pol <- pol[,c("no2", "so2", "rsp", "o3")]
 ```
@@ -55,7 +64,10 @@ ggsave("figures/pairs/all.png", width=10, height=8)
 Only quantitative variables:
 ```{r}
 ggpairs(pol.quants)
-ggsave("figures/pairs/quant.png", width=8, height=5)
+ggsave("figures/pairs/quant.png", width=10, height=7)
+
+ggpairs(pol.quants.log)
+ggsave("figures/pairs/quant_log.png", width=10, height=7)
 ```
 
 Quants + month
