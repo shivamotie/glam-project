@@ -13,6 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(GGally)
 library(corrplot)
+
+library(nlme)
+library(lmerTest)
+library(gee)
 ```
 
 We would like to model the effect of the pollutants and the meteorological conditions on the number of hospital admissions.
@@ -53,6 +57,13 @@ names(pol.quants.log)[5] <- "log(o3)"
 pol.meteo <- pol[,c("temp", "hum")]
 pol.pol <- pol[,c("no2", "so2", "rsp", "o3")]
 ```
+
+Plot the response variable to see how it looks like
+```{r}
+ggplot(pol.quants, aes(x=resp)) + geom_density()
+```
+
+No clear asymmetry or something like that that would indicate the use of something different than a Poisson. We will only (other assumptions for poisson?) have to look at overdispersion to see if the poisson is adapted.
 
 All
 ```{r}
@@ -100,3 +111,32 @@ Only thing to notice is rsp <=> no2, does it mean something? 78% correlation
 
 With the plots, we don't really see any clear pattern apart that it seems to increase with the years.
 But, maybe we have an interaction effect! We should investigate that as well.
+
+## GEE
+- Did not include `date` since it's the same information as day+month+year
+- I'm not sure GEE (or GLMM) is a good modelling approach since we don't really have an independent unit. Or should we count each response variable as the unit? 
+
+```{r}
+pol.gee2 <- gee(
+  resp ~ no2 + so2 + rsp + o3 + temp + hum + factor(day) +
+    month + year,
+  corstr = "exchangeable",
+  id = resp,
+  family = poisson,
+  data = pol)
+
+pol.gee2
+
+pol.gee1 <- gee(
+  resp ~ no2 + so2 + rsp + o3 + temp + hum + 
+    month + year,
+  corstr = "AR-M", Mv = 2,
+  id = resp,
+  family = poisson,
+  data = pol)
+
+pol.gee1
+```
+
+Doesn't work. It makes no sense without independent units.
+
