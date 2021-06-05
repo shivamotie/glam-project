@@ -2,11 +2,11 @@ data0 <- read.csv("pollution.csv", h=T)
 data <- na.omit(data0)
 sapply(data, class)
 library(gee)
-install.packages("mgcv")
 require(mgcv)
 attach(data)
-data$weekday <- as.factor(data$weekday)
-
+#data$weekday <-factor(data$weekday, levels = unique(data$weekday))
+#data$year <- factor(data$year, levels = unique(data$year))
+#data$month <- factor(data$month, levels = unique(data$month))
 
 boxplot(resp , main = "resp" , col = "gray")
 hist(resp)
@@ -27,136 +27,124 @@ plot(o3)
 plot(temp)
 plot(hum)
 
-m1<- gam(resp~ s(no2) + s(so2) + s(rsp) + s(o3) + s(temp) + s(hum) + 
-           factor(year)+ s(day)+ factor(month), family = poisson)
+
+m1<- gam(resp~ s(no2) + s(so2) + s(o3, k=8) +s(rsp)+ s(temp, bs="cc") + s(hum,k=15,bs="cc") + factor(year)+ 
+           s(day)+ factor(month)+factor(weekday), family = poisson)
+
 summary(m1)
+extractAIC(m1)
 
-#try without rsp since it's not significant and we have a quite high 
-#cor between rsp and no2 (nothing crazy but still)
-m2<- gam(resp~ s(no2) + s(so2) + s(o3) + s(temp) + s(hum) + factor(year)+ 
-           s(day)+ factor(month), family = poisson)
+
+m2<- gam(resp~ s(no2) + s(so2) + s(o3, k=8) + s(temp, bs="cc") + s(hum,k=15,bs="cc") + factor(year)+ 
+           s(day)+ factor(month)+factor(weekday), family = poisson)
 summary(m2)
-#nothing crazy so stick with m1
+gam.check(m2)
+extractAIC(m2)
 
-#What if we add the weekday ?
-m3<- gam(resp~ s(no2) + s(so2) + s(rsp) + s(o3) + s(temp) + s(hum) + factor(year)+ s(day)+ s(month, bc="cc", k=12)+ factor(weekday), family = poisson)
+
+m3<- gam(resp~ s(no2) + s(so2) + s(o3) + s(rsp) +s(temp, bs="cc") + s(hum,k=15, bs="cc") + factor(year)+ 
+           s(day)+ factor(month)+factor(weekday)+ factor(year)*factor(month), family = poisson)
 summary(m3)
+gam.check(m3)
+extractAIC(m3)
 
+
+#without day
+m4<- gam(resp~ s(no2) + s(so2) + s(rsp) + s(o3) + s(temp, bs="cc") + s(hum, k=15, bs="cc") + 
+           factor(year)+ factor(month)+factor(weekday), family = poisson)
+summary(m4)
+gam.check(m4)
+extractAIC(m4)
 
 
 extractAIC(m1)
-extractAIC(m2) #little bit lower
+extractAIC(m2)  #lowest
+extractAIC(m3)
+extractAIC(m4)
+
+
+        #====================================================#
+
+
+
+#change the levels of month, to have "seasons
+
+data$month_bis[data$month==12] <- 1
+data$month_bis[data$month==1] <- 1
+data$month_bis[data$month==2] <- 1
+
+data$month_bis[data$month==3] <- 2
+data$month_bis[data$month==4] <- 2
+data$month_bis[data$month==5] <- 2
+
+data$month_bis[data$month==6] <- 3
+data$month_bis[data$month==7] <- 3
+data$month_bis[data$month==8] <- 3
+
+data$month_bis[data$month==9] <- 4
+data$month_bis[data$month==10] <- 4
+data$month_bis[data$month==11] <- 4
+
+unique(data$month_bis)
+attach(data)
+m5<- gam(resp~ s(no2) + s(so2) + s(o3, k=8) + s(temp, bs="cc") + s(hum,k=15, bs="cc") + factor(year)+ 
+            factor(month_bis)+factor(weekday), family = poisson)
+summary(m5)
+gam.check(m5)
+extractAIC(m5)
+#plot(m2)
+#plot(m2$residuals~m2$fitted.values, main="residuals vs. fitted")
+
+
+m6<- gam(resp~ s(no2) + s(so2) + s(o3) + s(temp,bs="cc") + s(hum,k=15, bs="cc") + factor(year)+ 
+           s(day)+ factor(month_bis) +factor(weekday)+  factor(year)*factor(month_bis)*factor(weekday), family = poisson)
+summary(m6)
+gam.check(m6) #best in deviance explained so far
+extractAIC(m6)
+
+
+m7<- gam(resp~ s(no2) + s(so2) + s(o3) + s(temp, bs="cc") + s(hum,k=15, bs="cc") + factor(year)+ 
+           s(day)+ factor(month_bis)+factor(weekday)+  factor(year)*factor(month_bis), family = poisson)
+summary(m7)
+gam.check(m7) #lowest UBRE
+extractAIC(m7)
+
+
+m8<- gam(resp~ s(no2) + s(so2) + s(o3) + s(temp, bs="cc") + s(hum,k=15, bs="cc") + factor(year)+ 
+           s(day)+ factor(month_bis)+factor(weekday)+ factor(month_bis)*factor(weekday)+  factor(year)*factor(month), family = poisson)
+summary(m8)
+gam.check(m8)
+extractAIC(m8)
+
+
+
+#without day
+m9<- gam(resp~ s(no2) + s(so2) + s(rsp) + s(o3) + s(temp, bs="cc") + s(hum, k=15, bs="cc") + 
+           factor(year)+ factor(month_bis)+factor(weekday), family = poisson)
+summary(m9)
+gam.check(m9)
+extractAIC(m9)
+
+
+m10<- gam(resp~ s(no2) + s(so2) + s(o3) + s(temp, bs= "cc") + s(hum,k=15, bs= "cc") + factor(year)+
+           factor(month_bis)+factor(weekday)+  factor(year)*factor(month_bis)*factor(weekday), family = poisson)
+summary(m10)
+gam.check(m10)
+extractAIC(m10)
 
 
 
 
-
-
-
-#==================================================================================================================================================================================================================================================================================================================================================
-# poisson with no transform : Shiva
-# autocorr matrix gee : Olivier
-
-#summaryBy(resp~weekday, data=data,
-#          FUN = function(x) { c(Number_of_units=length(x),  Mean= mean(x), standard_deviation = sd(x)) })
-
-#summaryBy(resp~month, data=data,
-#          FUN = function(x) { c(Number_of_units=length(x),  Mean= mean(x), standard_deviation = sd(x)) })
-
-
-#Shiva's models
-data$weekday = relevel(data$weekday, ref="mon")
-
-pois_1 =glm(resp ~ no2 + so2 + rsp + o3 + temp + hum + factor(day) + factor(month) + factor(weekday) + factor(year) , data = data , family = poisson)
-summary(pois_1)
+#final model
+summary(m5)
 par(mfrow=c(2,2))
-plot(pois_1)
+plot(m5)
 
-pois_2 =glm(resp ~ no2 + so2 + rsp + o3 + temp + hum  + factor(month) + factor(weekday) + factor(year) , data = data, family = poisson)
-summary(pois_2)
-par(mfrow=c(2,2))
-plot(pois_2)
-
-pois_3 =glm(resp ~ no2 + so2 + o3 + hum  + factor(month) + factor(weekday) + factor(year) , data = data , family = poisson)
-summary(pois_3)
-par(mfrow=c(2,2))
-plot(pois_3)
+par(mfrow=c(1,1))
+plot(m5$residuals~m5$fitted.values, main="residuals vs. fitted")
+abline(h=0, col="red", lwd=2)
 
 
-pois_4 =glm(resp ~ no2 + o3 + hum  + factor(month) + factor(weekday) + factor(year) , data =data , family = poisson)
-summary(pois_4)
-par(mfrow=c(2,2))
-plot.glm(pois_4)
-
-extractAIC(pois_1)
-extractAIC(pois_2)
-extractAIC(pois_3) #smallest AIC
-extractAIC(pois_4)
-
-library(statmod)
-par(mfrow=c(2, 2))
-for (i in 1:4){
-  rqresid.fit <- qresid(pois_1)
-  qqnorm(rqresid.fit)
-  abline(a = 0, b = 1, col = "red")
-}
-
-for (i in 1:4){
-  rqresid.fit <- qresid(pois_2)
-  qqnorm(rqresid.fit)
-  abline(a = 0, b = 1, col = "red")
-}
-
-for (i in 1:4){
-  rqresid.fit <- qresid(pois_3)
-  qqnorm(rqresid.fit)
-  abline(a = 0, b = 1, col = "red")
-}
-
-for (i in 1:4){
-  rqresid.fit <- qresid(pois_4)
-  qqnorm(rqresid.fit)
-  abline(a = 0, b = 1, col = "red")
-}
-
-  
-
-#Olivier's models
-data$month <- as.factor(data$month)
-data$year <- as.factor(data$year)
-data$weekday <- as.factor(data$weekday)
-str(data)
-
-
-pol.gee2 <- gee(
-  resp ~ no2 + so2 + rsp + o3 + temp + hum + factor(day) +
-    month + year,
-  corstr = "exchangeable",
-  id = resp,
-  family = poisson,
-  data = data)
-pol.gee2
-
-
-pol.gee1 <- gee(
-  resp ~ no2 + so2 + rsp + o3 + temp + hum + 
-    month + year,
-  corstr = "AR-M", Mv = 2,
-  id = resp,
-  family = poisson,
-  data = data)
-pol.gee1
-
-
-res.pol.gee1 <- (data$resp - pol.gee1$fitted) / sqrt(pol.gee1$fitted)
-bwplot(data$resp ~ res.pol.gee1,
-       xlab = 'Pearson residuals',
-       ylab = 'resp',       
-       panel = function(...) {
-         panel.abline(v = c(-1.96, 0, 1.96), lty = 2)
-         panel.bwplot(...)
-       }
-)
-
-
-extractAIC(pol.gee2)
+par(mfrow=c(1,1))
+qqnorm(m5$residuals)
+qqline(m5$residuals, col="red")
